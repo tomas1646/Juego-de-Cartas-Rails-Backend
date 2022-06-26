@@ -1,4 +1,4 @@
-class Board < ApplicationRecord
+class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
   POINTS = :CALERA
   ROUNDS = [1, 2, 3, 4, 5].freeze
 
@@ -10,7 +10,7 @@ class Board < ApplicationRecord
 
   enum status: { waiting_players: 0, in_course: 1, finished: 2 }
 
-  def self.winner_card(cards_position)
+  def self.winner_card(cards_position) # rubocop:disable Metrics/AbcSize
     # cards_position is an array with ["card", position] example [["1-Or", 0], ["12-Co", 1]]
     # map card (from string to integer) integer value ex [[1, 0], [12, 1]]
     arr = cards_position.map { |cp| [cp[0].split('-')[0].to_i, cp[1]] }
@@ -37,7 +37,6 @@ class Board < ApplicationRecord
     return 4 if last_two_rounds.size == 1
 
     if (last_two_rounds[0] - last_two_rounds[1]).negative?
-
       if Board::ROUNDS.include?(last_two_rounds[1] + 1)
         last_two_rounds[1] + 1
       else
@@ -51,11 +50,18 @@ class Board < ApplicationRecord
   end
 
   def json
-    as_json(except: %i[id deck created_at updated_at])
+    as_json(only: %i[status],
+            include: { board_players: { only: %i[score player_id status] },
+                       rounds: { only: %i[round_number status number_of_cards],
+                                 include: { round_players: { only: %i[cards bet_wins bet_position current_wins player_id] },
+                                            games: { only: %i[game_number winner_id], include: {
+                                              turns: { only: %i[card_played play_position player_id player_position] }
+                                            } } } } })
   end
 
   def join_board(player)
-    return if !waiting_players? || player_in_board?(player)
+    raise 'Game Started' unless waiting_players?
+    raise 'Player already joined' if player_in_board?(player)
 
     players.push(player)
   end
@@ -65,21 +71,21 @@ class Board < ApplicationRecord
   end
 
   def start_game
-    return if players.size <= 1
+    raise 'Only one player joined. At least two players are required to start game.' if players.size <= 1
 
     self.status = :in_course
 
     # Player who goes first throwing cards
     self.next_first_player_id = board_players.first.player_id
 
-    start_round
+    create_round
   end
 
-  def start_round
+  def create_round
     return unless rounds.all?(&:finished?)
 
     card_number = next_round_number
-    round_created = Round.new(board: self, number_of_cards: card_number, round_number: rounds.size)
+    round_created = Round.create(board: self, number_of_cards: card_number, round_number: rounds.size)
 
     rounds.push(round_created)
 
@@ -97,7 +103,7 @@ class Board < ApplicationRecord
   end
 
   def next_round_number
-    return 3 if rounds.size == 0
+    return 3 if rounds.empty?
 
     last_two_rounds = rounds.last(2).map!(&:number_of_cards)
 
@@ -105,11 +111,11 @@ class Board < ApplicationRecord
   end
 
   def players_id_in_course
-    board_players.map { |bp| bp.player_id unless bp.looser? }.compact
+    board_players.filter_map { |bp| bp.player_id unless bp.looser? }
   end
 
   def players_ids
-    board_players.map { |bp| bp.player_id }
+    board_players.map(&:player_id)
   end
 
   def deal_cards(players, card_number)
@@ -127,7 +133,9 @@ class Board < ApplicationRecord
   end
 
   def bet_wins(player_id, win_number)
-    rounds.last.set_wins player_id, win_number
+    raise 'Game is not started' if waiting_players?
+
+    rounds.last.set_bet player_id, win_number
   end
 
   def throw_card(player_id, card)
@@ -144,31 +152,23 @@ class Board < ApplicationRecord
 
     check_end_game
 
-    return unless finished?
+    return if finished?
 
     update_first_player
-    start_round
+    create_round
   end
 
   def update_first_player
     players_in_game = players_id_in_course
     players_in_board = players_ids
 
-    ## no es necesario el primer if, puedo solo hacerlo con el segundo y queda mas entendible
+    players_in_board.rotate!(players_in_board.find_index(next_first_player_id))
 
-    if players_in_game.any?(next_first_player_id)
-      players_in_game.rotate!(players_in_game.find_index(next_first_player_id))
-      index = players_in_game.find_index(next_first_player_id)
-      next_player_id = players_in_game[index + 1]
-    else
-      players_in_board.rotate!(players_in_board.find_index(next_first_player_id))
-      index = players_in_board.find_index(next_first_player_id) + 1
-      until players_in_game.any?(players_in_board[index])
-        index += 1
-        break if index == 6
-      end
-      next_player_id = players_in_board[index]
-    end
+    index = players_in_board.find_index(next_first_player_id) + 1
+
+    index += 1 until players_in_game.any?(players_in_board[index])
+
+    next_player_id = players_in_board[index]
 
     self.next_first_player_id = next_player_id if next_player_id.present?
   end
@@ -178,7 +178,8 @@ class Board < ApplicationRecord
 
     if number_of_loosers == board_players.size - 1
       # there is one winner
-      board_players.find { |ob| ob.status.nil? }.winner
+      board_player = board_players.find { |ob| ob.status.nil? }
+      board_player.update(status: :winner)
       end_game
     end
 
@@ -190,8 +191,8 @@ class Board < ApplicationRecord
     self.status = :finished
   end
 
-  def get_player_cards(player_id)
-    rounds.last.player_cards(player_id)
+  def get_player_cards(player)
+    rounds.last.player_cards(player.id)
   end
 
   private

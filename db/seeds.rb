@@ -9,3 +9,56 @@ b = Board.new
 b.join_board p1
 b.join_board p2
 b.save
+
+b.start_game
+
+# Round 1
+
+b.bet_wins 1, 0
+b.bet_wins 2, 1
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]
+
+# Round 2
+
+b.bet_wins 1, 1
+b.bet_wins 2, 1
+
+b.throw_card 1, b.rounds.last.round_players[1].cards[0]
+b.throw_card 2, b.rounds.last.round_players[0].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[1].cards[0]
+b.throw_card 2, b.rounds.last.round_players[0].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[1].cards[0]
+b.throw_card 2, b.rounds.last.round_players[0].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[1].cards[0]
+b.throw_card 2, b.rounds.last.round_players[0].cards[0]
+
+# Round 3
+
+b.bet_wins 1, 1
+b.bet_wins 2, 0
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]
+
+b.throw_card 1, b.rounds.last.round_players[0].cards[0]
+b.throw_card 2, b.rounds.last.round_players[1].cards[0]

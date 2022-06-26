@@ -7,6 +7,7 @@ class BoardPlayer < ApplicationRecord
   def update_score(rounds_lost)
     self.score = Board::POINTS.slice(0, score.length + rounds_lost)
     update_status
+    save
   end
 
   def update_status

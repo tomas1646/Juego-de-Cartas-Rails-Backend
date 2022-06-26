@@ -24,9 +24,7 @@ class BoardsController < ApplicationController
   end
 
   def join
-    return render_success_response(@board.json, 'Joined to the board') if @board.is_player_in_board @player
-
-    return render_error_response({}, 'Game Started. Cant join.') unless @board.waiting_players?
+    return render_success_response(@board.json, 'Joined to the board') if @board.player_in_board? @player
 
     @board.join_board @player
 
@@ -38,50 +36,12 @@ class BoardsController < ApplicationController
   end
 
   def start_game
-    return render_error_response({}, 'There is only one player. Cant start game.') if @board.players.length == 1
-
     @board.start_game
 
     if @board.save
       render_success_response(@board.json, 'Game Started')
     else
       render_error_response({}, "Error Starting Game #{board.errors.full_messages.join(', ')}")
-    end
-  end
-
-  def start_card_round
-    return render_error_response({}, "Board isn't waiting for wins") unless @board.waiting_wins_asked?
-
-    @board.status = :waiting_card_throw
-
-    if @board.save
-      render_success_response(@board.json, 'Board status change to Waiting Card Throw')
-    else
-      render_error_response({}, "Error Starting Game #{board.errors.full_messages.join(', ')}")
-    end
-  end
-
-  def end_card_round
-    return render_error_response({}, "Board isn't waiting cards") unless @board.waiting_card_throw?
-
-    @board.finish_round params[:round_card_number].to_i
-
-    if @board.save
-      render_success_response(@board.json, 'Round Finished')
-    else
-      render_error_response({}, "Error Finishing Round #{board.errors.full_messages.join(', ')}")
-    end
-  end
-
-  def update_score
-    return render_error_response({}, 'Only player 1 can change scores') if @player != @board.players[0]
-
-    @board.score = params[:scores].to_json
-
-    if @board.save
-      render_success_response(@board.json, 'Scores Updated')
-    else
-      render_error_response({}, "Error Updating Scores #{board.errors.full_messages.join(', ')}")
     end
   end
 
@@ -108,16 +68,6 @@ class BoardsController < ApplicationController
       render_success_response(@board.json, 'Win Number Set')
     else
       render_error_response({}, "Error setting win number #{board.errors.full_messages.join(', ')}")
-    end
-  end
-
-  def end_game
-    @board.end_game params[:winner]
-
-    if @board.save
-      render_success_response(@board.json, 'Game Finished')
-    else
-      render_error_response({}, "Error finishing game #{board.errors.full_messages.join(', ')}")
     end
   end
 

@@ -15,37 +15,40 @@ class Round < ApplicationRecord
   end
 
   def start_card_round
-    return if waiting_bet_asked? && !all_bet?
-
     return unless can_start_new_round?
 
     self.status = :waiting_card_throw
-
+    save
     create_turn
   end
 
   def create_turn
-    arr = players_ids
-    if games.size != 0
+    arr = order_player_ids
+    game_created = Game.create(game_number: games.size)
+    game_created.create_turns arr
+    games.push(game_created)
+  end
 
+  def order_player_ids
+    arr = players_ids
+    unless games.empty?
       last_winner_id = games.last.winner_id
       arr.rotate!(arr.find_index(last_winner_id))
     end
-
-    games.push(Game.new(round_number: games.size))
-    games.last.create_turns arr
+    arr
   end
 
   def throw_card(player_id, card)
-    return unless can_throw_card?(player_id)
+    throw_card_validations(player_id)
 
-    round_players.map do |rp|
-      next unless rp.player_id == player_id && rp.has_card?(card) && !games.last.player_throw_card?(player_id)
+    round_player = round_players.find { |rp| rp.player_id == player_id }
 
-      games.last.throw_card player_id, card
+    raise "Player doesnt have the card #{card}" unless round_player.has_card?(card)
+    raise 'Player already throw a card' if games.last.player_throw_card?(player_id)
 
-      rp.remove_card(card)
-    end
+    games.last.throw_card player_id, card
+
+    round_player.remove_card(card)
 
     # if all player throw cards and someone win
     finish_game if games.last.finished?
@@ -57,11 +60,12 @@ class Round < ApplicationRecord
     round_players.find { |rp| rp.player_id == winner_id }.add_one_curr_win
 
     # if it was the last game this round must finish
-    if games.size == (round_number(-1))
+    if games.size == number_of_cards
       self.status = :finished
     else
       create_turn
     end
+    save
   end
 
   def players_ids_and_lost_number
@@ -69,7 +73,7 @@ class Round < ApplicationRecord
     round_players.each do |rp|
       p_id = rp.player_id
 
-      lost_number = (round_players.bet_wins - round_players.current_wins).abs
+      lost_number = (rp.bet_wins - rp.current_wins).abs
 
       arr.push({ id: p_id, lost: lost_number })
     end
@@ -77,11 +81,15 @@ class Round < ApplicationRecord
   end
 
   def set_bet(player_id, win_number)
-    return if !player_in_round?(player_id) || !waiting_bet_asked?
+    raise 'Player isnt in round' unless player_in_round?(player_id)
+    raise 'Round status isnt Ask Bet' unless waiting_bet_asked?
 
-    round_players.map do |rp|
-      rp.bet win_number if rp.player_id == player_id
-    end
+    round_player = round_players.find { |rp| rp.player_id == player_id }
+
+    round_player.bet_wins = win_number
+    round_player.save
+
+    start_card_round if all_bet?
   end
 
   def player_cards(player_id)
@@ -95,7 +103,7 @@ class Round < ApplicationRecord
   end
 
   def all_bet?
-    round_players.any? { |rp| rp.bet_wins.nil? }
+    round_players.all? { |rp| rp.bet_wins.present? }
   end
 
   def all_play?
@@ -103,16 +111,21 @@ class Round < ApplicationRecord
   end
 
   def players_ids
-    round_players.map { |rp| rp.player_id }
+    round_players.map(&:player_id)
   end
 
   private
 
-  def can_throw_card?(player_id)
-    waiting_card_throw? && (player_in_round? player_id)
+  def throw_card_validations(player_id)
+    raise 'Round status isnt Throw Card' unless waiting_card_throw?
+    raise 'Player isnt in round' unless player_in_round?(player_id)
   end
 
   def can_start_new_round?
-    all_play? && games.size == (round_number(-1))
+    if games.empty?
+      true
+    else
+      all_play?
+    end
   end
 end

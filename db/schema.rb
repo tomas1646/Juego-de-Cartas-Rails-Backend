@@ -105,14 +105,14 @@ ActiveRecord::Schema[7.0].define(version: 2022_06_24_021022) do
   end
 
   create_table "turns", force: :cascade do |t|
-    t.bigint "round_played_id"
+    t.bigint "game_id"
     t.bigint "player_id"
     t.string "card_played", default: ""
     t.integer "player_position"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["game_id"], name: "index_turns_on_game_id"
     t.index ["player_id"], name: "index_turns_on_player_id"
-    t.index ["round_played_id"], name: "index_turns_on_round_played_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
