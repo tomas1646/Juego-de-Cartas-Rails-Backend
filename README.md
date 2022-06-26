@@ -1,6 +1,8 @@
 # Programacion Avanzada TaTeTi
 
-![Diagrama de clases]("https://github.com/tomas1646/Juego-de-Cartas-Rails-Backend-/blob/master/Diagrama%20Clases.jpg")
+![alt text](https://github.com/tomas1646/Juego-de-Cartas-Rails-Backend/blob/master/Diagrama%20Clases.jpg?raw=true)
+
+<img src="https://github.com/tomas1646/Juego-de-Cartas-Rails-Backend/blob/master/Diagrama%20Clases.jpg?raw=true">
 
 ## Endpoints
 
