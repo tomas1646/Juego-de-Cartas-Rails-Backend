@@ -1,4 +1,4 @@
-class Round < ApplicationRecord
+class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
   belongs_to :board
   has_many :round_players
   has_many :games
@@ -84,10 +84,11 @@ class Round < ApplicationRecord
     raise 'Player isnt in round' unless player_in_round?(player_id)
     raise 'Round status isnt Ask Bet' unless waiting_bet_asked?
 
-    round_player = round_players.find { |rp| rp.player_id == player_id }
+    @round_player = round_players.find { |rp| rp.player_id == player_id }
 
-    round_player.bet_wins = win_number
-    round_player.save
+    check_last_player_bet(win_number)
+
+    @round_player.update(bet_wins: win_number)
 
     start_card_round if all_bet?
   end
@@ -127,5 +128,26 @@ class Round < ApplicationRecord
     else
       all_play?
     end
+  end
+
+  def check_last_player_bet(win_number)
+    last_player_bet_position = round_players.max_by(&:bet_position).bet_position
+
+    return if @round_player.bet_position != last_player_bet_position
+
+    all_player_except_last_bet?(win_number)
+  end
+
+  def all_player_except_last_bet?(win_number)
+    players_bets_without_last = round_players.map(&:bet_wins)
+    players_bets_without_last.pop
+
+    raise 'All players must bet before the last player can bet' if players_bets_without_last.any?(&:nil?)
+
+    sum = players_bets_without_last.sum
+
+    return unless (sum + win_number) == number_of_cards
+
+    raise 'The sum of the bets cant be equal to the number of cards in the round'
   end
 end
