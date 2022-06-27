@@ -223,20 +223,20 @@ Error:
 
 #### GET /boards
 
-Obtener todos los tableros. Se puede filtrar por estado y por jugador
+Obtener todos los boards. Se puede filtrar, que busque Boards por estado y/o por el jugador logueado
 
 ```text
-Para obtener todos los tableros: ".../boards"
+Si queremos filtrar por los boards en los que esta el usuario logueado, la url se debe agregar
+...?player=true
 
-Para obtener todos los con un estado en especifico: ".../boards?status[]=0"
-
-Para obtener todos los tableros de un usuario: ".../boards?user"
+Si queremos filtrar por estado, en la url se debe agregar el numero correspondiente al estado
+...?status[]=1&status[]=2
 ```
 
-Ejemplo si queremos obtener todos los tableros en los que esta el usuario logueado, y que tengan estado "waiting_players" o "player_1_turn" o "player_2_turn"
+REQUEST
 
 ```text
-url: .../boards?user&status[]=0&status[]=1&status[]=2
+Request.Authorization = Player Token
 ```
 
 RESPONSE
@@ -246,21 +246,54 @@ Success:
 ```json
 {
   "status": 200,
+  "success": true,
   "message": "Action completed successfully",
   "content": [
     {
-      "player_1_name": "Tomas E",
-      "player_2_name": "Jane Doe",
-      "status": "Waiting_For_Players",
-      "token": "b5283e68-d468-410c-8a1c-b52f8cbda245",
-      "board": ["X", 0, "O", "X", 0, "O", "X", 0, 0]
-    },
-    {
-      "player_1_name": "Tomas E",
-      "player_2_name": "Jane Doe",
-      "status": "Waiting_For_Players",
-      "token": "b5283e68-d468-410c-8a1c-b52f8cbda245",
-      "board": ["X", 0, "O", "X", 0, "O", "X", 0, 0]
+      "status": "in_course",
+      "board_players": [
+        {
+          "player_id": 1,
+          "status": "...",
+          "score": "...."
+        },
+        {
+          "player_id": 2,
+          "status": "...",
+          "score": "..."
+        }
+      ],
+      "last_round": {
+        "number_of_cards": 5,
+        "round_number": 2,
+        "status": "finished",
+        "round_players": [
+          {
+            "player_id": 1,
+            "bet_wins": 1,
+            "current_wins": 3,
+            "bet_position": 0
+          },
+          {
+            "player_id": 2,
+            "bet_wins": 0,
+            "current_wins": 2,
+            "bet_position": 1
+          }
+        ],
+        "games": [
+          {
+            "game_number": 0,
+            "winner_id": 1,
+            "status": "finished"
+          },
+          {
+            "game_number": 1,
+            "winner_id": null,
+            "status": "in_course"
+          }
+        ]
+      }
     }
   ]
 }
@@ -270,7 +303,7 @@ Success:
 
 #### GET /boards/:id
 
-Obtener un tablero
+Obtener un board en especifico
 
 RESPONSE
 
@@ -279,13 +312,53 @@ Success:
 ```json
 {
   "status": 200,
+  "success": true,
   "message": "Action completed successfully",
   "content": {
-    "player_1_name": "Tomas E",
-    "player_2_name": "Jane Doe",
-    "status": "Waiting_For_Players",
-    "token": "b5283e68-d468-410c-8a1c-b52f8cbda245",
-    "board": ["X", 0, "O", "X", 0, "O", "X", 0, 0]
+    "status": "in_course",
+    "board_players": [
+      {
+        "player_id": 1,
+        "status": "...",
+        "score": "...."
+      },
+      {
+        "player_id": 2,
+        "status": "...",
+        "score": "..."
+      }
+    ],
+    "last_round": {
+      "number_of_cards": 5,
+      "round_number": 2,
+      "status": "finished",
+      "round_players": [
+        {
+          "player_id": 1,
+          "bet_wins": 1,
+          "current_wins": 3,
+          "bet_position": 0
+        },
+        {
+          "player_id": 2,
+          "bet_wins": 0,
+          "current_wins": 2,
+          "bet_position": 1
+        }
+      ],
+      "games": [
+        {
+          "game_number": 0,
+          "winner_id": 1,
+          "status": "finished"
+        },
+        {
+          "game_number": 1,
+          "winner_id": null,
+          "status": "in_course"
+        }
+      ]
+    }
   }
 }
 ```
@@ -295,6 +368,7 @@ Error:
 ```json
 {
   "status": 404,
+  "success": false,
   "message": "Board doesn't exists",
   "content": {}
 }
@@ -309,7 +383,7 @@ Crear un tablero
 REQUEST
 
 ```text
-Request.Authorization = User Token
+Request.Authorization = Player Token
 ```
 
 RESPONSE
@@ -319,38 +393,18 @@ Success:
 ```json
 {
   "status": 200,
+  "success": true,
   "message": "Board Created",
   "content": {
-    "player_1_name": "Tomas E",
-    "player_2_name": "Jane Doe",
-    "status": "Waiting_For_Players",
-    "token": "b5283e68-d468-410c-8a1c-b52f8cbda245",
-    "board": ["X", 0, "O", "X", 0, "O", "X", 0, 0]
+    "status": "waiting_players",
+    "board_players": [
+      {
+        "player_id": 1,
+        "status": null,
+        "score": ""
+      }
+    ]
   }
-}
-```
-
-Error 1:
-
-No existe el usuario
-
-```json
-{
-  "status": 404,
-  "message": "User with token doesn't exists",
-  "content": {}
-}
-```
-
-Error 2:
-
-Error al guardar el tablero
-
-```json
-{
-  "status": 400,
-  "message": "Error creating Board",
-  "content": {}
 }
 ```
 
@@ -358,24 +412,259 @@ Error al guardar el tablero
 
 #### POST /boards/:id/join
 
+El jugador logueado se une al board
+
+REQUEST
+
+```text
+Request.Authorization = Player Token
+```
+
+RESPONSE
+
+Success:
+
+```json
+{
+  "status": 200,
+  "success": true,
+  "message": "Joined to the board",
+  "content": {
+    "status": "waiting_players",
+    "board_players": [
+      {
+        "player_id": 1,
+        "status": null,
+        "score": ""
+      },
+      {
+        "player_id": 2,
+        "status": null,
+        "score": ""
+      }
+    ]
+  }
+}
+```
+
 ---
 
 #### POST /boards/:id/start_game
+
+Empezar la partida
+
+REQUEST
+
+```text
+Request.Authorization = Player Token
+```
+
+RESPONSE
+
+Success:
+
+```json
+{
+  "status": 200,
+  "success": true,
+  "message": "Game Started",
+  "content": {
+    "status": "in_course",
+    "board_players": [
+      {
+        "player_id": 1,
+        "status": null,
+        "score": ""
+      },
+      {
+        "player_id": 2,
+        "status": null,
+        "score": ""
+      }
+    ],
+    "last_round": {
+      "number_of_cards": 3,
+      "round_number": 0,
+      "status": "waiting_bet_asked",
+      "round_players": [
+        {
+          "player_id": 1,
+          "bet_wins": null,
+          "current_wins": 0,
+          "bet_position": 0
+        },
+        {
+          "player_id": 2,
+          "bet_wins": null,
+          "current_wins": 0,
+          "bet_position": 1
+        }
+      ],
+      "games": []
+    }
+  }
+}
+```
 
 ---
 
 #### POST /boards/:id/bet_wins
 
+El jugador logueado apuesta cuantas rondas va a ganar
+
+REQUEST
+
+```text
+Request.Authorization = Player Token
+```
+
+```json
+{
+  "wins": 2
+}
+```
+
+RESPONSE
+
+Success:
+
+```json
+{
+  "status": 200,
+  "success": true,
+  "message": "Win Number Set",
+  "content": {
+    "status": "in_course",
+    "board_players": [
+      {
+        "player_id": 1,
+        "status": null,
+        "score": ""
+      },
+      {
+        "player_id": 2,
+        "status": null,
+        "score": ""
+      }
+    ],
+    "last_round": {
+      "number_of_cards": 3,
+      "round_number": 0,
+      "status": "waiting_bet_asked",
+      "round_players": [
+        {
+          "player_id": 2,
+          "bet_wins": null,
+          "current_wins": 0,
+          "bet_position": 1
+        },
+        {
+          "player_id": 1,
+          "bet_wins": 2,
+          "current_wins": 0,
+          "bet_position": 0
+        }
+      ],
+      "games": []
+    }
+  }
+}
+```
+
 ---
 
 #### POST /boards/:id/throw_card
 
----
+Tirar una carta
 
-#### POST /boards/:id/cards
+REQUEST
+
+```text
+Request.Authorization = Player Token
+```
+
+```json
+{
+  "card": "12-Or"
+}
+```
+
+RESPONSE
+
+Success:
+
+```json
+{
+  "status": 200,
+  "success": true,
+  "message": "Card Thrown",
+  "content": {
+    "status": "in_course",
+    "board_players": [
+      {
+        "player_id": 1,
+        "status": null,
+        "score": ""
+      },
+      {
+        "player_id": 2,
+        "status": null,
+        "score": ""
+      }
+    ],
+    "last_round": {
+      "number_of_cards": 3,
+      "round_number": 0,
+      "status": "waiting_card_throw",
+      "round_players": [
+        {
+          "player_id": 2,
+          "bet_wins": 1,
+          "current_wins": 0,
+          "bet_position": 1
+        },
+        {
+          "player_id": 1,
+          "bet_wins": 1,
+          "current_wins": 0,
+          "bet_position": 0
+        }
+      ],
+      "games": [
+        {
+          "game_number": 0,
+          "winner_id": null,
+          "status": "in_course"
+        }
+      ]
+    }
+  }
+}
+```
 
 ---
 
 #### GET /boards/:id/cards
+
+Obtener las cartas del jugador logueado
+
+REQUEST
+
+```text
+Request.Authorization = Player Token
+```
+
+RESPONSE
+
+Success:
+
+```json
+{
+  "status": 200,
+  "success": true,
+  "message": "Action completed successfully",
+  "content": ["10-Or", "4-Or", "10-Co"]
+}
+```
 
 ---

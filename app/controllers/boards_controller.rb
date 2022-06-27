@@ -47,7 +47,7 @@ class BoardsController < ApplicationController
   end
 
   def bet_wins
-    @board.player_bet_win @player, params[:wins]
+    @board.player_bet_win @player.id, params[:wins]
 
     if @board.save
       render_success_response(@board.json, 'Win Number Set')
@@ -57,7 +57,7 @@ class BoardsController < ApplicationController
   end
 
   def throw_card
-    @board.throw_card @player, params[:card]
+    @board.throw_card @player.id, params[:card]
 
     if @board.save
       render_success_response(@board.json, 'Card Thrown')

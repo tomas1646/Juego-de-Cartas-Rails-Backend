@@ -68,7 +68,9 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
             include: { board_players: { only: %i[score player_id status] },
                        last_round: { only: %i[round_number status number_of_cards],
                                      include: { round_players: { only: %i[bet_wins bet_position current_wins player_id] },
-                                                games: { only: %i[game_number status winner_id] } } } })
+                                                games: { only: %i[game_number status winner_id],
+                                                         include: { turns: { only: %i[card_played player_id
+                                                                                      player_position] } } } } } })
   end
 
   def complete_history_as_json
@@ -77,7 +79,7 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
                        rounds: { only: %i[round_number status number_of_cards],
                                  include: { round_players: { only: %i[cards bet_wins bet_position current_wins player_id] },
                                             games: { only: %i[game_number winner_id status],
-                                                     include: { turns: { only: %i[card_played play_position player_id
+                                                     include: { turns: { only: %i[card_played player_id
                                                                                   player_position] } } } } } })
   end
 

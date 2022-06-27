@@ -133,12 +133,13 @@ class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
     return if @round_player.bet_position != last_player_bet_position
 
-    all_player_except_last_bet?(win_number)
+    all_player_except_last_bet?(win_number, last_player_bet_position)
   end
 
-  def all_player_except_last_bet?(win_number)
-    players_bets_without_last = round_players.map(&:bet_wins)
-    players_bets_without_last.pop
+  def all_player_except_last_bet?(win_number, last_player_bet_position)
+    players_bets_without_last = round_players.filter do |rp|
+      rp.bet_position != last_player_bet_position
+    end.map(&:bet_wins)
 
     raise 'All players must bet before the last player can bet' if players_bets_without_last.any?(&:nil?)
 
