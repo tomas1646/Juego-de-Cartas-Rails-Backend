@@ -1,4 +1,4 @@
-# Programacion Avanzada TaTeTi
+# Programacion Avanzada Trabajo Final Juego de Cartas (CALERA)
 
 ## Diagrama de Clases
 
