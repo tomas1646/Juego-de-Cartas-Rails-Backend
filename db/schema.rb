@@ -56,7 +56,7 @@ ActiveRecord::Schema[7.0].define(version: 2022_06_24_021022) do
   create_table "boards", force: :cascade do |t|
     t.string "token"
     t.integer "status", default: 0
-    t.integer "next_first_player_id"
+    t.integer "first_player_id"
     t.text "deck", default: [], array: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

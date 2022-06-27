@@ -6,36 +6,47 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   has_many :board_players
   has_many :rounds
+  has_one :last_round, -> { order(rounds: :desc) }, class_name: 'Round'
   has_many :players, through: :board_players
 
   enum status: { waiting_players: 0, in_course: 1, finished: 2 }
 
+  ##
+  # Given an array of cards, with the card and the position in the board
+  # the method return the winner card
+  #
+  # Example: given [["3-Or", 0], ["12-Or",1],["11-Es",2]]
+  # return ["12-Or", 1]
   def self.winner_card(cards_position) # rubocop:disable Metrics/AbcSize
-    # cards_position is an array with ["card", position] example [["1-Or", 0], ["12-Co", 1]]
-    # map card (from string to integer) integer value ex [[1, 0], [12, 1]]
+    # map card from string to integer value
     arr = cards_position.map { |cp| [cp[0].split('-')[0].to_i, cp[1]] }
 
-    # get the maximum value
-    max = arr.max_by { |it| it[0] }
+    # get the maximum card
+    max_card = arr.max_by { |it| it[0] }[0]
 
-    # get the cards with the max value
-    winner_cards = arr.select { |ob| ob[0] == max[0] }
+    # get the all the cards that has the highest card
+    winner_cards = arr.select { |ob| ob[0] == max_card }
 
     # check if there is only one card with the max value
     winner_position = if winner_cards.size == 1
                         # only one card with the max value
-                        winner_cards[0][1]
+                        winner_cards.first[1]
                       else
-                        # if there is two cards with the max value, this search the one that was played first
+                        # if there is two cards with the max value, search the one that was played first
                         winner_cards.min_by { |it| it[1] }[1]
                       end
 
     cards_position.find { |ob| ob[1] == winner_position }
   end
 
-  def self.next_round_card_number(last_two_rounds)
-    return 4 if last_two_rounds.size == 1
-
+  ##
+  # Given the last two rounds of a board, calculates the next round number
+  #
+  # Example:
+  # given [3,4], return 5
+  # given [4,5], return 4
+  # given [3,2], return 1
+  def self.next_round_from_last_two_played(last_two_rounds)
     if (last_two_rounds[0] - last_two_rounds[1]).negative?
       if Board::ROUNDS.include?(last_two_rounds[1] + 1)
         last_two_rounds[1] + 1
@@ -49,14 +60,25 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
     end
   end
 
+  ##
+  # Map the board as json
+  # Only the last round will be mapped
   def json
+    as_json(only: %i[status],
+            include: { board_players: { only: %i[score player_id status] },
+                       last_round: { only: %i[round_number status number_of_cards],
+                                     include: { round_players: { only: %i[bet_wins bet_position current_wins player_id] },
+                                                games: { only: %i[game_number status winner_id] } } } })
+  end
+
+  def complete_history_as_json
     as_json(only: %i[status],
             include: { board_players: { only: %i[score player_id status] },
                        rounds: { only: %i[round_number status number_of_cards],
                                  include: { round_players: { only: %i[cards bet_wins bet_position current_wins player_id] },
-                                            games: { only: %i[game_number winner_id], include: {
-                                              turns: { only: %i[card_played play_position player_id player_position] }
-                                            } } } } })
+                                            games: { only: %i[game_number winner_id status],
+                                                     include: { turns: { only: %i[card_played play_position player_id
+                                                                                  player_position] } } } } } })
   end
 
   def join_board(player)
@@ -76,30 +98,28 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
     self.status = :in_course
 
     # Player who goes first throwing cards
-    self.next_first_player_id = board_players.first.player_id
+    self.first_player_id = board_players.first.player_id
 
     create_round
   end
 
   def create_round
-    return unless rounds.all?(&:finished?)
+    raise 'Previous rounds must finish before starting a new one' unless rounds.all?(&:finished?)
 
     card_number = next_round_number
-    round_created = Round.create(board: self, number_of_cards: card_number, round_number: rounds.size)
 
-    rounds.push(round_created)
+    rounds.push(Round.create(board: self, number_of_cards: card_number, round_number: rounds.size))
 
-    players_ids = players_id_in_course
-    ids_with_order = order_player_ids(players_ids)
     cards = deal_cards(players_ids.length, card_number)
 
-    rounds.last.start_bet_round ids_with_order, cards
+    rounds.last.start_bet_round order_player_ids, cards
 
     save
   end
 
-  def order_player_ids(players_ids)
-    players_ids.rotate(players_ids.find_index(next_first_player_id))
+  def order_player_ids
+    arr = players_id_in_course
+    arr.rotate(arr.find_index(first_player_id))
   end
 
   def next_round_number
@@ -107,7 +127,9 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
     last_two_rounds = rounds.last(2).map!(&:number_of_cards)
 
-    Board.next_round_card_number last_two_rounds
+    return 4 if last_two_rounds.size == 1
+
+    Board.next_round_from_last_two_played last_two_rounds
   end
 
   def players_id_in_course
@@ -132,10 +154,10 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
     cards
   end
 
-  def bet_wins(player_id, win_number)
+  def player_bet_win(player_id, win_number)
     raise 'Game is not started' if waiting_players?
 
-    rounds.last.set_bet player_id, win_number
+    rounds.last.bet_win player_id, win_number
   end
 
   def throw_card(player_id, card)
@@ -162,15 +184,15 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
     players_in_game = players_id_in_course
     players_in_board = players_ids
 
-    players_in_board.rotate!(players_in_board.find_index(next_first_player_id))
+    players_in_board.rotate!(players_in_board.find_index(first_player_id))
 
-    index = players_in_board.find_index(next_first_player_id) + 1
+    index = players_in_board.find_index(first_player_id) + 1
 
     index += 1 until players_in_game.any?(players_in_board[index])
 
     next_player_id = players_in_board[index]
 
-    self.next_first_player_id = next_player_id if next_player_id.present?
+    self.first_player_id = next_player_id if next_player_id.present?
   end
 
   def check_end_game
@@ -191,8 +213,8 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
     self.status = :finished
   end
 
-  def get_player_cards(player)
-    rounds.last.player_cards(player.id)
+  def player_cards(player_id)
+    rounds.last.player_cards(player_id)
   end
 
   private

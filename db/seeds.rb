@@ -14,8 +14,8 @@ b.start_game
 
 # Round 1
 
-b.bet_wins 1, 0
-b.bet_wins 2, 1
+b.player_bet_win 1, 0
+b.player_bet_win 2, 1
 
 b.throw_card 1, b.rounds.last.round_players[0].cards[0]
 b.throw_card 2, b.rounds.last.round_players[1].cards[0]
@@ -28,8 +28,8 @@ b.throw_card 2, b.rounds.last.round_players[1].cards[0]
 
 # Round 2
 
-b.bet_wins 2, 1
-b.bet_wins 1, 1
+b.player_bet_win 2, 1
+b.player_bet_win 1, 1
 
 b.throw_card 1, b.rounds.last.round_players[1].cards[0]
 b.throw_card 2, b.rounds.last.round_players[0].cards[0]
@@ -45,8 +45,8 @@ b.throw_card 2, b.rounds.last.round_players[0].cards[0]
 
 # Round 3
 
-b.bet_wins 1, 1
-b.bet_wins 2, 0
+b.player_bet_win 1, 1
+b.player_bet_win 2, 0
 
 b.throw_card 1, b.rounds.last.round_players[0].cards[0]
 b.throw_card 2, b.rounds.last.round_players[1].cards[0]

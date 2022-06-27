@@ -15,7 +15,7 @@ class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   def start_card_round
-    return unless can_start_new_round?
+    start_new_round_validations
 
     self.status = :waiting_card_throw
     save
@@ -44,7 +44,6 @@ class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
     round_player = round_players.find { |rp| rp.player_id == player_id }
 
     raise "Player doesnt have the card #{card}" unless round_player.has_card?(card)
-    raise 'Player already throw a card' if games.last.player_throw_card?(player_id)
 
     games.last.throw_card player_id, card
 
@@ -80,7 +79,7 @@ class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
     arr
   end
 
-  def set_bet(player_id, win_number)
+  def bet_win(player_id, win_number)
     raise 'Player isnt in round' unless player_in_round?(player_id)
     raise 'Round status isnt Ask Bet' unless waiting_bet_asked?
 
@@ -94,7 +93,7 @@ class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   def player_cards(player_id)
-    return unless player_in_round?(player_id)
+    raise 'Player isnt in round' unless player_in_round?(player_id)
 
     round_players.find { |rp| rp.player_id == player_id }.cards
   end
@@ -120,14 +119,13 @@ class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def throw_card_validations(player_id)
     raise 'Round status isnt Throw Card' unless waiting_card_throw?
     raise 'Player isnt in round' unless player_in_round?(player_id)
+    raise 'Player already throw a card' if games.last.player_throw_card?(player_id)
   end
 
-  def can_start_new_round?
-    if games.empty?
-      true
-    else
-      all_play?
-    end
+  def start_new_round_validations
+    return if games.empty?
+
+    raise 'Before starting a new round, all players must throw cards' unless all_play?
   end
 
   def check_last_player_bet(win_number)
