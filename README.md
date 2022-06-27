@@ -2,7 +2,7 @@
 
 ## Diagrama de Clases
 
-![Diagrama Clases](https://github.com/tomas1646/Juego-de-Cartas-Rails-Backend/blob/master/Diagrama%20Clases.jpg?raw=true)
+![Diagrama Clases](https://github.com/tomas1646/Juego-de-Cartas-Rails-Backend/blob/master/Diagrama%20Clases.jpeg?raw=true)
 
 ## Endpoints
 
