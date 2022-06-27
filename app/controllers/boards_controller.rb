@@ -6,7 +6,7 @@ class BoardsController < ApplicationController
     boards = Board.ransack(players_id_eq: params[:player] ? @player.id : nil,
                            status_in: params[:status]).result.includes(:players)
 
-    render_success_response(boards.preload(:players).map { |board| board.json })
+    render_success_response(boards.preload(:players).map(&:json))
   end
 
   def show
@@ -16,6 +16,7 @@ class BoardsController < ApplicationController
   def create
     board = Board.new
     board.join_board @player
+
     if board.save
       render_success_response(board.json, 'Board Created')
     else
@@ -45,9 +46,17 @@ class BoardsController < ApplicationController
     end
   end
 
-  def throw_card
-    return render_error_response({}, 'Cant throw two cards') if @board.did_player_throw_card? @player
+  def bet_wins
+    @board.player_bet_win @player, params[:wins]
 
+    if @board.save
+      render_success_response(@board.json, 'Win Number Set')
+    else
+      render_error_response({}, "Error setting win number #{board.errors.full_messages.join(', ')}")
+    end
+  end
+
+  def throw_card
     @board.throw_card @player, params[:card]
 
     if @board.save
@@ -58,17 +67,7 @@ class BoardsController < ApplicationController
   end
 
   def cards
-    render_success_response(@board.get_player_cards(@player))
-  end
-
-  def set_wins
-    @board.set_player_win @player, params[:wins]
-
-    if @board.save
-      render_success_response(@board.json, 'Win Number Set')
-    else
-      render_error_response({}, "Error setting win number #{board.errors.full_messages.join(', ')}")
-    end
+    render_success_response(@board.player_cards(@player.id))
   end
 
   private

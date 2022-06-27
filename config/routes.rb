@@ -8,10 +8,10 @@ Rails.application.routes.draw do
 
   resources :boards, only: %i[index create show] do
     member do
-      put :join
-      put :start_game
-      put :set_wins
-      put :throw_card
+      post :join
+      post :start_game
+      post :bet_wins
+      post :throw_card
       get :cards
     end
   end
