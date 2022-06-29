@@ -47,16 +47,12 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # given [4,5], return 4
   # given [3,2], return 1
   def self.next_round_from_last_two_played(last_two_rounds)
-    if (last_two_rounds[0] - last_two_rounds[1]).negative?
-      if Board::ROUNDS.include?(last_two_rounds[1] + 1)
-        last_two_rounds[1] + 1
-      else
-        last_two_rounds[1] - 1
-      end
-    elsif Board::ROUNDS.include?(last_two_rounds[1] - 1)
-      last_two_rounds[1] - 1
+    prev_round = last_two_rounds[1]
+
+    if last_two_rounds[0] < prev_round
+      Board::ROUNDS.include?(prev_round + 1) ? prev_round + 1 : prev_round - 1
     else
-      last_two_rounds[1] + 1
+      Board::ROUNDS.include?(prev_round - 1) ? prev_round - 1 : prev_round + 1
     end
   end
 
@@ -115,8 +111,6 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
     cards = deal_cards(players_ids.length, card_number)
 
     rounds.last.start_bet_round order_player_ids, cards
-
-    save
   end
 
   def order_player_ids
@@ -127,7 +121,7 @@ class Board < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def next_round_number
     return 3 if rounds.empty?
 
-    last_two_rounds = rounds.last(2).map!(&:number_of_cards)
+    last_two_rounds = rounds.last(2).map(&:number_of_cards)
 
     return 4 if last_two_rounds.size == 1
 

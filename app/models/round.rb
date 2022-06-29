@@ -56,7 +56,7 @@ class Round < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def finish_game
     # add the win to the player
     winner_id = games.last.winner_id
-    round_players.find { |rp| rp.player_id == winner_id }.add_one_curr_win
+    round_players.find { |rp| rp.player_id == winner_id }.increment!(:current_wins)
 
     # if it was the last game this round must finish
     if games.size == number_of_cards
